@@ -1,4 +1,4 @@
-"""This module implements our CI function calls."""
+"""Nox test execution module"""
 import nox
 
 
