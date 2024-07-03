@@ -1,6 +1,6 @@
 """Test module for the attention is all you need transformer and its modules."""
 import torch
-from src.transformer.model import Attention
+from src.transformer.model import SelfAttention
 
 
 class TestTransformer:
@@ -29,8 +29,8 @@ class TestTransformer:
         data = torch.zeros((tokens, heads * dim))
         #keys = torch.zeros((tokens, heads * dim))
 
-        att = Attention(heads, dim)
-        data = att.transpose_for_multi_head(data)
+        att = SelfAttention(heads, dim)
+        data = transpose_for_multi_head(data)
         assert data.shape == (heads, tokens, dim)
 
         #keys = att.transpose_for_multi_head(keys)
