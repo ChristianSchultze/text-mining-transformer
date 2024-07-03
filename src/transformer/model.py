@@ -13,6 +13,10 @@ class Transformer(torch.nn.Module):
         self.ff_dim = ff_dim
         self.num_heads: int = num_heads
 
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # TODO: implement
+        pass
+
 
 class Encoder(torch.nn.Module):
     """Implements encoder with multiple layers consisting of attention and feed forward modules, as well as embedding
@@ -54,9 +58,9 @@ class Embedding(torch.nn.Module):
     """Implements fully connected layer for converting word tokens into vectors of model dimension.
     """
 
-    def __init__(self, input_size, output_size):
+    def __init__(self, token_dim, model_dim):
         super().__init__()
-        self.linear = torch.nn.Conv1d(input_size, output_size, 1)
+        self.linear = torch.nn.Conv1d(token_dim, model_dim, 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # TODO: implement
@@ -111,4 +115,4 @@ class FeedForward(torch.nn.Module):
 
     def __init__(self, model_dim: int = 512, hidden_dim: int = 2048):
         super().__init__()
-        # linear input to hidden + ReLu; hidden to output do all with 1x1 conv over whole matrix
+        # linear input to hidden + ReLu; hidden to output do all with 1x1 conv1D over whole matrix

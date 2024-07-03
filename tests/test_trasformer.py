@@ -2,6 +2,7 @@
 import torch
 from src.transformer.model import Attention
 
+
 class TestTransformer:
     """Test Transformer Modules"""
 
