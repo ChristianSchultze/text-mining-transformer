@@ -15,7 +15,6 @@ class Transformer(torch.nn.Module):
         self.num_heads: int = num_heads
 
     def forward(self, encoder_tokens: torch.Tensor, decoder_tokens: torch.Tensor) -> torch.Tensor:
-
         # TODO: implement
         pass
 
@@ -52,7 +51,7 @@ class Decoder(torch.nn.Module):
         self.layers.append(PositionalEncoding())
         # TODO: implement Masked Multi-Head Attention
         for i in range(num_layers):
-            self.layers.append(SelfAttention()) #TODO add cross-Attention
+            self.layers.append(SelfAttention())  # TODO add cross-Attention
             self.layers.append(FeedForward())
 
     def forward(self, decoder_tokens: torch.Tensor, encoder_output: torch.Tensor) -> torch.Tensor:
@@ -61,6 +60,7 @@ class Decoder(torch.nn.Module):
         CrossAttention.encoder_output = encoder_output
         for layer in self.layers:
             # implement me
+            pass
         CrossAttention.encoder_output = None
         pass
 
@@ -92,16 +92,6 @@ class PositionalEncoding(torch.nn.Module):
         pass
 
 
-def transpose_for_multi_head(inputs: torch.Tensor, num_heads, model_dim) -> torch.Tensor:
-    """Transpose vectors of size dim*num_heads to matrices of shape [dim, num_heads].
-    Implementation from https://github.com/Beckschen/TransUNet.
-    """
-    new_x_shape = inputs.size()[:-1] + (num_heads, model_dim)
-    inputs = inputs.view(*new_x_shape)
-    return inputs.permute(1, 0, 2)
-
-
-
 class SelfAttention(torch.nn.Module):
     """Implements multi head scaled dot product attention."""
 
@@ -114,12 +104,25 @@ class SelfAttention(torch.nn.Module):
         self.conv_value = torch.nn.Conv1d(model_dim, num_heads * model_dim, 1)
         self.conv_output = torch.nn.Conv1d(model_dim * num_heads, model_dim, 1)
 
+    def transpose_for_multi_head(self, tokens: torch.Tensor) -> torch.Tensor:
+        """Transpose vectors of size dim*num_heads to matrices of shape [dim, num_heads].
+        Implementation from https://github.com/Beckschen/TransUNet.
+        """
+        new_x_shape = tokens.shape[-1:] + (self.num_heads, self.model_dim)
+        tokens = tokens.view(*new_x_shape)
+        return tokens.permute(1, 2, 0)
+
     def compute_attention(self, key, query, value):
-        key = transpose_for_multi_head(self.conv_key(key))
-        query = transpose_for_multi_head(self.conv_query(query))
-        value = transpose_for_multi_head(self.conv_value(value))
-        out = torch.nn.softmax(torch.matmul(torch.matmul(query, key) / np.sqrt(self.model_dim), value))
-        out = out.reshape(out.shape[0], out.shape[1] * out.shape[2])
+        assert len(key.shape) == 2
+        assert len(query.shape) == 2
+        assert len(value.shape) == 2
+        key = self.transpose_for_multi_head(self.conv_key(key))
+        query = self.transpose_for_multi_head(self.conv_query(query))
+        value = self.transpose_for_multi_head(self.conv_value(value))
+        out = torch.matmul(
+            torch.nn.functional.softmax(torch.matmul(query.permute(0, 2, 1), key) / np.sqrt(self.model_dim)),
+            value.permute(0, 2, 1)).permute(0, 2, 1)
+        out = out.reshape(out.shape[0] * out.shape[1], out.shape[2])
         out = self.conv_output(out)
         return out
 
@@ -127,14 +130,18 @@ class SelfAttention(torch.nn.Module):
         out = self.compute_attention(tokens, tokens, tokens)
         return out
 
+
 class CrossAttention(SelfAttention):
     """Implements Cross Attention between encoder key and query and decoder value"""
+
     def __init__(self, num_heads: int, model_dim: int):
         super().__init__(num_heads, model_dim)
         self.encoder_output = None
+
     def forward(self, decoder_tokens: torch.Tensor) -> torch.Tensor:
         out = self.compute_attention(self.encoder_output, self.encoder_output, decoder_tokens)
         return out
+
 
 class FeedForward(torch.nn.Module):
     """Implements feed-forward layer as described in Vaswani et al. 2017"""
