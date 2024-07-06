@@ -1,5 +1,5 @@
 """module for evaluating an mteb task"""
-from typing import Callable
+from typing import Callable, Tuple
 
 import torch
 from torch import nn
@@ -10,6 +10,19 @@ from transformers import AutoTokenizer
 from datasets import load_dataset
 
 from src.transformer.model import Transformer
+
+
+def generate_combinations(pred_pairs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Generates all combination of token similarity pairs, as well as the labels for each pair.
+    Pairs contain two sentences, that are semantically similar and therefore are assigned the label 1.
+    All other combinations """
+    pred_pairs = pred_pairs.reshape(len(pred_pairs)//2, -1)
+    no_similarity_indices = torch.combinations(torch.arange(len(pred_pairs.flatten())))
+    labels = torch.tensor([1] * len(pred_pairs) + [-1] * len(no_similarity_indices))
+    pred_combination = torch.vstack([pred_pairs,
+                                     pred_pairs.flatten()[no_similarity_indices].reshape(len(no_similarity_indices), -1)
+                                     ])
+    return labels, pred_combination
 
 
 class Trainer:
@@ -30,13 +43,8 @@ class Trainer:
                 self.model.zero_grad()
 
     def loss_for_combinations(self, pairs):
-        combination_indices = torch.combinations(torch.arange(len(pairs)))
-        pred_combination = torch.hstack([pairs[:, 0][combination_indices[:, 0]],
-                                        pairs[:, 1][combination_indices][:, 1]]).T # reshape?
-        labels = torch.ones_like(pred_combination) * -1
-        labels.diagonal().one_()
-
-        self.loss(pred_combination, labels) # only one map for labels
+        labels, pred_combination = generate_combinations(pairs)
+        return self.loss(pred_combination, labels)
 
 
 def main():
