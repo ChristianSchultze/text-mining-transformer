@@ -23,7 +23,7 @@ def lint(session):
     """Check code conventions."""
     session.install("-r", "requirements.txt")
     session.install("pylint")
-    session.run("pylint", "src", "script")
+    session.run("pylint", "src")
 
 
 @nox.session(name="typing")
@@ -42,7 +42,7 @@ def mypy(session):
         "--namespace-packages",
         "--implicit-reexport",  # tensorboard is untyped
         "--allow-untyped-calls",  # tensorboard is untyped
-        "src/baseline_detection",
+        "src/transformer",
     )
 
 

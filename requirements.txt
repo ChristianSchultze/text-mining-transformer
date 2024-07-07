@@ -2,3 +2,6 @@ torch
 mypy
 pylint
 nox
+transformers
+datasets
+tqdm
